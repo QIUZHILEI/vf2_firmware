@@ -27,7 +27,9 @@ pub extern "C" fn rust_entry(code_end: usize) -> ! {
         BLOCK.store(false, Ordering::Relaxed);
         info!("prepare into loader program.");
     } else {
-        while BLOCK.load(Ordering::Relaxed) {}
+        while BLOCK.load(Ordering::Relaxed) {
+            core::hint::spin_loop();
+        }
     }
     unsafe { jump_loader(LOADER_SIZE.load(Ordering::SeqCst), LOAD_ADDRESS) }
 }

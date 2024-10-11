@@ -8,14 +8,14 @@ tom_arch = { git = "https://github.com/QIUZHILEI/tom_arch.git", features = [
     "riscv_M",
     "riscv_S",
     "riscv_timer",
-], branch = "dev" }
+], branch = "main" }
 tom_device = { git = "https://github.com/QIUZHILEI/tom_device.git", features = [
     "char",
     "block",
-], branch = "dev" }
-tom_timer = { git = "https://github.com/QIUZHILEI/tom_timer.git", branch = "dev" }
+], branch = "main" }
+tom_timer = { git = "https://github.com/QIUZHILEI/tom_timer.git", branch = "main" }
 log = "0.4"
-gpt = { git = "https://github.com/QIUZHILEI/gpt.git", branch = "dev" }
-serial = { git = "https://github.com/QIUZHILEI/serial.git", branch = "dev" }
-sdio = { git = "https://github.com/QIUZHILEI/sdio.git", branch = "dev" }
-minifat = { git = "https://github.com/QIUZHILEI/minifat.git", branch = "dev" }
+gpt = { git = "https://github.com/QIUZHILEI/gpt.git", branch = "main" }
+serial = { git = "https://github.com/QIUZHILEI/serial.git", branch = "main" }
+sdio = { git = "https://github.com/QIUZHILEI/sdio.git", branch = "main" }
+minifat = { git = "https://github.com/QIUZHILEI/minifat.git", branch = "main" }
