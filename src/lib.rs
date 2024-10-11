@@ -1,6 +1,4 @@
 #![no_std]
-#![feature(const_refs_to_static)]
-#![feature(const_ptr_as_ref)]
 #![feature(const_option)]
 #![feature(allocator_api)]
 mod fs;
@@ -14,12 +12,12 @@ use core::slice;
 
 use alloc::string::ToString;
 use fs::Volume;
+use gpt::{GptLayout, PRIMARY_HEADER_LBA};
 use log::info;
 use minifat::{FileSystem, FsOptions, NullTimeProvider, Read};
-use gpt::{GptLayout, PRIMARY_HEADER_LBA};
 pub use uart::*;
 extern crate alloc;
-const LOADER_NAME: &'static str = "LOADER.EFI";
+const LOADER_NAME: &str = "LOADER.EFI";
 
 pub fn init(code_end: usize) {
     uart::init();
@@ -41,10 +39,10 @@ fn find_efi_partition(gpt: &mut GptLayout, blk: &mut [u8]) -> usize {
     let efi_uuid = "c12a7328-f81f-11d2-ba4b-00c93ec90";
     info!("find efi partition...");
     sd::read_block(PRIMARY_HEADER_LBA, blk);
-    gpt.init_primary_header(&blk).unwrap();
+    gpt.init_primary_header(blk).unwrap();
     let part_start = gpt.primary_header().part_start as usize;
     sd::read_block(part_start, blk);
-    gpt.init_partitions(&blk, 1);
+    gpt.init_partitions(blk, 1);
     let efi_part = gpt.partition(3).unwrap();
     if efi_part.part_type_guid.to_string().eq(efi_uuid) {
         info!("find efi partition {}", 3);
@@ -66,16 +64,14 @@ fn load_loader(fs: &mut FileSystem<Volume, NullTimeProvider>, load_addr: usize) 
     let mut size = 0;
     for item in root.iter() {
         let entry = item.unwrap();
-        if entry.is_file() {
-            if entry.short_file_name().eq(LOADER_NAME) {
-                info!("load boot loader program {}", entry.short_file_name());
-                let mut file = entry.to_file();
-                size = file.size().unwrap() as usize;
-                let buf = unsafe { slice::from_raw_parts_mut(load_addr as *mut u8, size) };
-                file.read_exact(buf).unwrap();
-                info!("boot loader program load success");
-                break;
-            }
+        if entry.is_file() && entry.short_file_name().eq(LOADER_NAME) {
+            info!("load boot loader program {}", entry.short_file_name());
+            let mut file = entry.to_file();
+            size = file.size().unwrap() as usize;
+            let buf = unsafe { slice::from_raw_parts_mut(load_addr as *mut u8, size) };
+            file.read_exact(buf).unwrap();
+            info!("boot loader program load success");
+            break;
         }
     }
     size
