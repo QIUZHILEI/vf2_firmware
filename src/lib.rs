@@ -1,7 +1,5 @@
 #![no_std]
-#![feature(const_option)]
-#![feature(allocator_api)]
-mod fs;
+mod fat;
 mod logger;
 mod mem;
 mod sd;
@@ -11,10 +9,9 @@ mod uart;
 use core::slice;
 
 use alloc::string::ToString;
-use fs::Volume;
+use fat::Volume;
 use gpt::{GptLayout, PRIMARY_HEADER_LBA};
-use log::info;
-use minifat::{FileSystem, FsOptions, NullTimeProvider, Read};
+use log::{debug, info};
 pub use uart::*;
 extern crate alloc;
 const LOADER_NAME: &str = "LOADER.EFI";
@@ -31,8 +28,14 @@ pub fn load_bootloader(load_addr: usize) -> usize {
     let mut gpt = GptLayout::new();
     let part_index = find_efi_partition(&mut gpt, &mut buf);
     let part = gpt.partition(part_index).unwrap();
-    let mut fs = init_fat(part.start_lba as usize, part.end_lba as usize);
-    load_loader(&mut fs, load_addr)
+    let volume: Volume = init_fat(part.start_lba as usize);
+    info!("fs init success");
+    if let Some((lba, size)) = volume.find(LOADER_NAME, unsafe { sd::blk_dev_mut() }) {
+        load_to_mem(lba, size, load_addr);
+        size
+    } else {
+        panic!("Can not find boot loader {}.", LOADER_NAME)
+    }
 }
 
 fn find_efi_partition(gpt: &mut GptLayout, blk: &mut [u8]) -> usize {
@@ -50,29 +53,29 @@ fn find_efi_partition(gpt: &mut GptLayout, blk: &mut [u8]) -> usize {
     3
 }
 
-fn init_fat(start_lba: usize, end_lba: usize) -> FileSystem<Volume, NullTimeProvider> {
+fn init_fat(start_lba: usize) -> Volume {
     info!("init fat file system");
-    FileSystem::new(
-        Volume::new(start_lba, end_lba, unsafe { sd::blk_dev_mut() }),
-        FsOptions::new(),
-    )
-    .unwrap()
+    let mut bpb = [0u8; 512];
+    sd::read_block(start_lba, &mut bpb[..]);
+    let mut volume = Volume::new(start_lba);
+    volume.init_bpb(&bpb);
+    debug!("{volume:?}");
+    volume
 }
 
-fn load_loader(fs: &mut FileSystem<Volume, NullTimeProvider>, load_addr: usize) -> usize {
-    let root = fs.root_dir();
-    let mut size = 0;
-    for item in root.iter() {
-        let entry = item.unwrap();
-        if entry.is_file() && entry.short_file_name().eq(LOADER_NAME) {
-            info!("load boot loader program {}", entry.short_file_name());
-            let mut file = entry.to_file();
-            size = file.size().unwrap() as usize;
-            let buf = unsafe { slice::from_raw_parts_mut(load_addr as *mut u8, size) };
-            file.read_exact(buf).unwrap();
-            info!("boot loader program load success");
-            break;
-        }
+fn load_to_mem(lba: usize, size: usize, load_addr: usize) {
+    let blocks = if size % 512 == 0 {
+        size / 512
+    } else {
+        size / 512 + 1
+    };
+    for blk_idx in 0..blocks {
+        let block_lba = blk_idx + lba;
+        let buf = unsafe {
+            let ptr = (load_addr as *mut u8).add(blk_idx * 512);
+            slice::from_raw_parts_mut(ptr, 512)
+        };
+        sd::read_block(block_lba, buf);
     }
-    size
+    info!("boot loader load success, and loader size is {}", size);
 }

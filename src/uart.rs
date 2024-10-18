@@ -18,6 +18,8 @@ pub fn init() {
     uart_mut.init().unwrap()
 }
 
+/// # Safety
+/// The type that implements CharDevice should be declared as a global variable.
 #[inline]
 pub unsafe fn char_dev_mut() -> &'static mut dyn CharDevice {
     (&raw mut UART as *mut dyn CharDevice).as_mut().unwrap()

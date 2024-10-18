@@ -18,4 +18,4 @@ log = "0.4"
 gpt = { git = "https://github.com/QIUZHILEI/gpt.git", branch = "main" }
 serial = { git = "https://github.com/QIUZHILEI/serial.git", branch = "main" }
 sdio = { git = "https://github.com/QIUZHILEI/sdio.git", branch = "main" }
-minifat = { git = "https://github.com/QIUZHILEI/minifat.git", branch = "main" }
+byteorder = { version = "1", default-features = false }
