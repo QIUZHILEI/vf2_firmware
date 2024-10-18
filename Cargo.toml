@@ -19,3 +19,6 @@ gpt = { git = "https://github.com/QIUZHILEI/gpt.git", branch = "main" }
 serial = { git = "https://github.com/QIUZHILEI/serial.git", branch = "main" }
 sdio = { git = "https://github.com/QIUZHILEI/sdio.git", branch = "main" }
 byteorder = { version = "1", default-features = false }
+
+[profile.release]
+opt-level = 3
