@@ -2,7 +2,7 @@ OUTPUT_ARCH(riscv)
 ENTRY(entry)
 SECTIONS
 {
-    .text 0x40000000: {
+    .text 0xC0000000: {
         *(.text*) 
         . = ALIGN(8);
     }

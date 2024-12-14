@@ -18,12 +18,13 @@ impl UartWrapper {
 
 impl core::fmt::Write for UartWrapper {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        s.as_bytes().into_iter().for_each(|byte| {
-            self.uart.put_char(*byte).unwrap();
-        });
+        s.as_bytes()
+            .into_iter()
+            .for_each(|byte| while let Err(_) = self.uart.put_char(*byte) {});
         Ok(())
     }
 }
+
 #[macro_export]
 macro_rules! println {
     () => {{

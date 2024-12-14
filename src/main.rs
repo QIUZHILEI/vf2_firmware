@@ -1,37 +1,45 @@
 #![no_std]
 #![no_main]
+use core::arch::asm;
 use core::panic::PanicInfo;
-use core::sync::atomic::{AtomicUsize, Ordering};
-use core::{arch::global_asm, sync::atomic::AtomicBool};
+use core::{
+    arch::global_asm,
+    sync::atomic::{AtomicBool, Ordering},
+};
 use lego_arch::mhartid;
 use log::info;
 
-use vf2_firmware::{init, load_bootloader, println};
+use vf2_firmware::{init, load_kernel, println};
 global_asm!(include_str!("./entry.S"));
-global_asm!(include_str!("jump.S"));
 extern "C" {
     static _bss_start: usize;
     static _bss_end: usize;
-    fn jump_loader(size: usize, addr: usize) -> !;
 }
+
+const KERNEL_NAME: &str = "LEGO.OS";
 static BLOCK: AtomicBool = AtomicBool::new(true);
-const LOAD_ADDRESS: usize = 0x40000000 + 2 * 1024 * 1024 * 1024;
-static LOADER_SIZE: AtomicUsize = AtomicUsize::new(0);
+const LOAD_ADDR: usize = 0x40000000;
 #[no_mangle]
 pub extern "C" fn rust_entry(code_end: usize) -> ! {
     if mhartid::read() == 1 {
         clear_bss();
         init(code_end);
-        let size = load_bootloader(LOAD_ADDRESS);
-        LOADER_SIZE.store(size, Ordering::SeqCst);
+        load_kernel(LOAD_ADDR, KERNEL_NAME);
         BLOCK.store(false, Ordering::Relaxed);
-        info!("prepare into loader program.");
+        info!("prepare to jump to kernel execution.");
     } else {
         while BLOCK.load(Ordering::Relaxed) {
             core::hint::spin_loop();
         }
     }
-    unsafe { jump_loader(LOADER_SIZE.load(Ordering::SeqCst), LOAD_ADDRESS) }
+    unsafe {
+        asm!("
+            li a0, {load_addr}
+            jr a0",
+            load_addr = const LOAD_ADDR,
+            options(noreturn)
+        )
+    }
 }
 
 fn clear_bss() {
@@ -49,14 +57,14 @@ fn clear_bss() {
 pub fn panic(println: &PanicInfo) -> ! {
     if let Some(location) = println.location() {
         println!(
-            "panic occurred in file '{}' at line {}",
+            "panic occurred in file '{}' at line {}.",
             location.file(),
             location.line(),
         );
     } else {
-        println!("panic occurred but can't get location printlnrmation...");
+        println!("panic occurred but can't get location information.");
     }
 
-    println!("panic message: {:?}", println.message());
+    println!("panic message: {:?}.", println.message());
     loop {}
 }
