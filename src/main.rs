@@ -26,7 +26,7 @@ pub extern "C" fn rust_entry(code_end: usize) -> ! {
         init(code_end);
         load_kernel(LOAD_ADDR, KERNEL_NAME);
         BLOCK.store(false, Ordering::Relaxed);
-        info!("prepare to jump to kernel execution.");
+        info!("prepare to jump to kernel execution");
     } else {
         while BLOCK.load(Ordering::Relaxed) {
             core::hint::spin_loop();
@@ -57,14 +57,14 @@ fn clear_bss() {
 pub fn panic(println: &PanicInfo) -> ! {
     if let Some(location) = println.location() {
         println!(
-            "panic occurred in file '{}' at line {}.",
+            "panic occurred in file '{}' at line {}",
             location.file(),
             location.line(),
         );
     } else {
-        println!("panic occurred but can't get location information.");
+        println!("panic occurred but can't get location information");
     }
 
-    println!("panic message: {:?}.", println.message());
+    println!("panic message: {:?}", println.message());
     loop {}
 }
