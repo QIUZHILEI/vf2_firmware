@@ -3,7 +3,7 @@ use log::{Level, Metadata, Record};
 static LOGGER: Logger = Logger;
 
 pub fn init(level: Level) {
-    if let Ok(_) = log::set_logger(&LOGGER) {
+    if log::set_logger(&LOGGER).is_ok() {
         log::set_max_level(level.to_level_filter())
     }else{
         panic!("Global logger set failed!");
